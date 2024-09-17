@@ -1,0 +1,142 @@
+
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
+local flying = false
+local flightSpeed = 50 -- Điều chỉnh tốc độ bay nếu cần
+
+-- Tạo GUI điều khiển
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local function createButton(name, text, position)
+local button = Instance.new("TextButton")
+button.Name = name
+button.Text = text
+button.Size = UDim2.new(0, 100, 0, 50)
+button.Position = position
+button.Parent = screenGui
+return button
+end
+
+local upButton = createButton("UpButton", "Up", UDim2.new(0, 50, 0, 150))
+local downButton = createButton("DownButton", "Down", UDim2.new(0, 50, 0, 250))
+local leftButton = createButton("LeftButton", "Left", UDim2.new(0, 0, 0, 200))
+local rightButton = createButton("RightButton", "Right", UDim2.new(0, 100, 0, 200))
+local forwardButton = createButton("ForwardButton", "Forward", UDim2.new(0, 50, 0, 100))
+local backwardButton = createButton("BackwardButton", "Backward", UDim2.new(0, 50, 0, 300))
+
+local direction = Vector3.new(0, 0, 0)
+local function setDirection(newDirection)
+direction = newDirection
+end
+
+-- Sự kiện điều khiển bay
+local userInputService = game:GetService("UserInputService")
+
+upButton.MouseButton1Down:Connect(function()
+setDirection(Vector3.new(0, 1, 0))
+end)
+downButton.MouseButton1Down:Connect(function()
+setDirection(Vector3.new(0, -1, 0))
+end)
+forwardButton.MouseButton1Down:Connect(function()
+setDirection(Vector3.new(0, 0, -1))
+end)
+backwardButton.MouseButton1Down:Connect(function()
+setDirection(Vector3.new(0, 0, 1))
+end)
+leftButton.MouseButton1Down:Connect(function()
+setDirection(Vector3.new(-1, 0, 0))
+end)
+rightButton.MouseButton1Down:Connect(function()
+setDirection(Vector3.new(1, 0, 0))
+end)
+
+userInputService.InputEnded:Connect(function(input)
+if input.UserInputType == Enum.UserInputType.Touch then
+setDirection(Vector3.new(0, 0, 0))
+end
+end)
+
+-- Hàm điều khiển bay
+local function toggleFly()
+flying = not flying
+character.Humanoid.PlatformStand = flying
+
+if flying then
+while flying do
+wait(0.1)
+local newDir = (direction * flightSpeed).Unit * flightSpeed
+hrp.Velocity = hrp.CFrame:VectorToWorldSpace(newDir)
+end
+else
+hrp.Velocity = Vector3.new(0, 0, 0)
+end
+end
+
+-- Gán phím tắt để bật/tắt chế độ bay
+userInputService.InputBegan:Connect(function(input)
+if input.KeyCode == Enum.KeyCode.F then
+toggleFly()
+end
+end)
+
+-- Hàm farm tài nguyên
+local function farmResources()
+while wait(1) do
+for _, resource in pairs(game.Workspace.Resources:GetChildren()) do
+if resource:FindFirstChild("TouchInterest") then
+hrp.CFrame = resource.CFrame
+wait(0.1)
+end
+end
+end
+end
+
+-- Hàm farm vườn hoa
+local function farmGardens()
+while wait(1) do
+for _, flower in pairs(game.Workspace.Gardens:GetChildren()) do
+if flower:IsA("Model") and flower:FindFirstChild("HumanoidRootPart") then
+hrp.CFrame = flower.HumanoidRootPart.CFrame
+wait(0.1)
+end
+end
+end
+end
+
+-- Hàm lấy token
+local function collectTokens()
+while wait(0.1) do
+for _, token in pairs(game.Workspace.Collectibles:GetChildren()) do
+if token:IsA("Part") then
+hrp.CFrame = token.CFrame
+wait(0.1)
+end
+end
+end
+end
+
+-- Hàm tìm và đánh Windy Bee
+local function findAndFightWindyBee()
+while wait(1) do
+for _, bee in pairs(game.Workspace.Bees:GetChildren()) do
+if bee.Name == "Windy Bee" then
+repeat
+hrp.CFrame = bee.HumanoidRootPart.CFrame * CFrame.new(0, 0, -5)
+wait(0.1)
+if bee:FindFirstChild("Humanoid") then
+bee.Humanoid:TakeDamage(bee.Humanoid.Health) -- Đảm bảo rằng Windy Bee sẽ bị đánh
+end
+until not bee:FindFirstChild("Humanoid") or bee.Humanoid.Health <= 0
+end
+end
+end
+end
+
+-- Bắt đầu farm, săn Windy Bee, và farm vườn hoa
+spawn(farmResources)
+spawn(farmGardens)
+spawn(findAndFightWindyBee)
+spawn(collectTokens)
